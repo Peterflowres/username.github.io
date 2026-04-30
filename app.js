@@ -1,5 +1,7 @@
 let citas = [];
 let busqueda = "";
+let esAdmin = false;
+const PASSWORD_ADMIN = "1234"; // 🔐 cambia esto por tu contraseña
 
 const horarios = [
     "9:00 AM",
@@ -71,38 +73,57 @@ function filtrarCitas() {
             citas[i].telefono.includes(busqueda)
         ) {
             citasEncontradas++;
-            listaCitasHTML += `
-                <li class="tarjeta-cita" style="
-                    margin-bottom:12px;
-                    padding:15px 20px;
-                    background:white;
-                    border-radius:12px;
-                    list-style:none;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-                    display:flex;
-                    align-items:center;
-                    justify-content:space-between;
-                ">
-                    <span>
-                        👤 <strong>${citas[i].nombre}</strong> — 
-                        📞 ${citas[i].telefono} — 
-                        📅 ${citas[i].fecha} — 
-                        🕐 ${citas[i].horario}
-                    </span>
-                    <button class="btnCancelar" data-id="${citas[i].id}" style="
-                        background:lightcoral;
-                        border:none;
-                        padding:6px 12px;
-                        border-radius:8px;
-                        cursor:pointer;
-                        font-size:14px;
-                    ">❌ Cancelar</button>
-                </li>`;
+
+            if (esAdmin) {
+                listaCitasHTML += `
+                    <li class="tarjeta-cita" style="
+                        margin-bottom:12px;
+                        padding:15px 20px;
+                        background:white;
+                        border-radius:12px;
+                        list-style:none;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+                        display:flex;
+                        align-items:center;
+                        justify-content:space-between;
+                    ">
+                        <span>
+                            👤 <strong>${citas[i].nombre}</strong> — 
+                            📞 ${citas[i].telefono} — 
+                            📅 ${citas[i].fecha} — 
+                            🕐 ${citas[i].horario}
+                        </span>
+                        <button class="btnCancelar" data-id="${citas[i].id}" style="
+                            background:lightcoral;
+                            border:none;
+                            padding:6px 12px;
+                            border-radius:8px;
+                            cursor:pointer;
+                            font-size:14px;
+                        ">❌ Cancelar</button>
+                    </li>`;
+            } else {
+                listaCitasHTML += `
+                    <li class="tarjeta-cita" style="
+                        margin-bottom:12px;
+                        padding:15px 20px;
+                        background:white;
+                        border-radius:12px;
+                        list-style:none;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+                    ">
+                        📅 ${citas[i].fecha} — 🕐 ${citas[i].horario} — <em style="color:#aaa;">datos privados</em>
+                    </li>`;
+            }
         }
     }
 
     if (busqueda !== "" && citasEncontradas === 0) {
         listaCitasHTML = `<p>😕 No se encontraron citas para "${busqueda}"</p>`;
+    }
+
+    if (citas.length === 0) {
+        listaCitasHTML = `<p style="color:#aaa;">No hay citas agendadas aún.</p>`;
     }
 
     document.getElementById("listaCitas").innerHTML = listaCitasHTML;
@@ -165,7 +186,19 @@ function actualizarPagina() {
             </div>
 
             <div style="background:white; border-radius:16px; padding:30px; box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-                <h3 style="margin:0 0 15px 0;">📋 Citas agendadas</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3 style="margin:0;">📋 Citas agendadas</h3>
+                    <button id="btnAdmin" style="
+                        padding:8px 16px;
+                        background:${esAdmin ? "#ff6b6b" : "#4CAF50"};
+                        color:white;
+                        border:none;
+                        border-radius:8px;
+                        cursor:pointer;
+                        font-size:14px;
+                    ">${esAdmin ? "🔓 Cerrar sesión" : "🔐 Admin"}</button>
+                </div>
+
                 <input id="inputBuscar" type="text" placeholder="🔍 Buscar por nombre o teléfono" style="padding:10px; border-radius:8px; border:1px solid #ddd; width:100%; box-sizing:border-box;"/>
                 <br><br>
                 <ul id="listaCitas" style="padding:0; margin:0;"></ul>
@@ -182,6 +215,21 @@ function actualizarPagina() {
     document.getElementById("inputBuscar").addEventListener("input", function() {
         busqueda = this.value;
         filtrarCitas();
+    });
+
+    document.getElementById("btnAdmin").addEventListener("click", function() {
+        if (esAdmin) {
+            esAdmin = false;
+            actualizarPagina();
+        } else {
+            let password = prompt("🔐 Ingresa la contraseña de admin:");
+            if (password === PASSWORD_ADMIN) {
+                esAdmin = true;
+                actualizarPagina();
+            } else {
+                alert("❌ Contraseña incorrecta");
+            }
+        }
     });
 
     document.getElementById("btnVerHorarios").addEventListener("click", function() {
