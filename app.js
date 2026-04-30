@@ -11,7 +11,6 @@ const horarios = [
     "4:00 PM"
 ];
 
-// ✅ TU NÚMERO YA LISTO (México +52)
 const numeroWhatsApp = "524425761233";
 
 // --------- STORAGE ---------
@@ -37,9 +36,28 @@ function normalizar(texto) {
     return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+// --------- ESTILOS ---------
+const estilos = `
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .tarjeta-cita {
+        animation: fadeIn 0.3s ease;
+    }
+    .tarjeta-cita:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        transition: all 0.2s ease;
+    }
+`;
+
+const styleTag = document.createElement("style");
+styleTag.innerHTML = estilos;
+document.head.appendChild(styleTag);
+
 // --------- FILTRAR ---------
 function filtrarCitas() {
-
     citas.sort((a, b) => {
         return new Date(a.fecha + " " + a.horario) - new Date(b.fecha + " " + b.horario);
     });
@@ -48,20 +66,37 @@ function filtrarCitas() {
     let citasEncontradas = 0;
 
     for (let i = 0; i < citas.length; i++) {
-
         if (
             normalizar(citas[i].nombre).includes(normalizar(busqueda)) ||
             citas[i].telefono.includes(busqueda)
         ) {
             citasEncontradas++;
-
             listaCitasHTML += `
-                <li style="margin-bottom:10px; padding:10px; background:white; border-radius:8px; list-style:none;">
-                    👤 <strong>${citas[i].nombre}</strong> — 
-                    📞 ${citas[i].telefono} — 
-                    📅 ${citas[i].fecha} — 
-                    🕐 ${citas[i].horario}
-                    <button class="btnCancelar" data-id="${citas[i].id}" style="background:lightcoral; border:none; padding:5px 10px; border-radius:5px; margin-left:10px; cursor:pointer;">❌ Cancelar</button>
+                <li class="tarjeta-cita" style="
+                    margin-bottom:12px;
+                    padding:15px 20px;
+                    background:white;
+                    border-radius:12px;
+                    list-style:none;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+                    display:flex;
+                    align-items:center;
+                    justify-content:space-between;
+                ">
+                    <span>
+                        👤 <strong>${citas[i].nombre}</strong> — 
+                        📞 ${citas[i].telefono} — 
+                        📅 ${citas[i].fecha} — 
+                        🕐 ${citas[i].horario}
+                    </span>
+                    <button class="btnCancelar" data-id="${citas[i].id}" style="
+                        background:lightcoral;
+                        border:none;
+                        padding:6px 12px;
+                        border-radius:8px;
+                        cursor:pointer;
+                        font-size:14px;
+                    ">❌ Cancelar</button>
                 </li>`;
         }
     }
@@ -75,15 +110,11 @@ function filtrarCitas() {
     document.querySelectorAll(".btnCancelar").forEach(function(boton) {
         boton.addEventListener("click", function() {
             if (!confirm("¿Cancelar esta cita?")) return;
-
             const id = +boton.dataset.id;
-
             citas = citas.filter(c => c.id !== id);
-
             guardarCitas();
             busqueda = "";
             document.getElementById("inputBuscar").value = "";
-
             filtrarCitas();
             document.getElementById("totalCitas").textContent = citas.length;
         });
@@ -93,44 +124,54 @@ function filtrarCitas() {
 // --------- PAGINA ---------
 function actualizarPagina() {
     document.body.style.fontFamily = "Arial";
-    document.body.style.padding = "30px";
     document.body.style.background = "#f0f4f8";
+    document.body.style.margin = "0";
+    document.body.style.padding = "0";
 
     document.body.innerHTML = `
-        <h1>📅 Sistema de Citas</h1>
-        <p>📊 Total de citas agendadas: <strong id="totalCitas">${citas.length}</strong></p>
-        <hr>
+        <div style="max-width:650px; margin:0 auto; padding:40px 20px;">
 
-        <label><strong>Tu nombre:</strong></label><br>
-        <input id="inputNombre" type="text" placeholder="Escribe tu nombre" style="padding:8px; margin-top:5px; border-radius:5px; border:1px solid #ccc; width:250px;"/>
+            <div style="background:white; border-radius:16px; padding:30px; box-shadow:0 4px 20px rgba(0,0,0,0.08); margin-bottom:24px;">
+                <h1 style="margin:0 0 5px 0;">📅 Sistema de Citas</h1>
+                <p style="color:#888; margin:0 0 20px 0;">📊 Total de citas: <strong id="totalCitas">${citas.length}</strong></p>
 
-        <br><br>
+                <label><strong>Tu nombre:</strong></label><br>
+                <input id="inputNombre" type="text" placeholder="Escribe tu nombre" style="padding:10px; margin-top:5px; border-radius:8px; border:1px solid #ddd; width:100%; box-sizing:border-box;"/>
 
-        <label><strong>Tu teléfono:</strong></label><br>
-        <input id="inputTelefono" type="tel" placeholder="10 dígitos" style="padding:8px; margin-top:5px; border-radius:5px; border:1px solid #ccc; width:250px;"/>
+                <br><br>
 
-        <br><br>
+                <label><strong>Tu teléfono:</strong></label><br>
+                <input id="inputTelefono" type="tel" placeholder="10 dígitos" style="padding:10px; margin-top:5px; border-radius:8px; border:1px solid #ddd; width:100%; box-sizing:border-box;"/>
 
-        <label><strong>Selecciona una fecha:</strong></label><br>
-        <input id="inputFecha" type="date" style="padding:8px; margin-top:5px; border-radius:5px; border:1px solid #ccc;"/>
+                <br><br>
 
-        <br><br>
+                <label><strong>Selecciona una fecha:</strong></label><br>
+                <input id="inputFecha" type="date" style="padding:10px; margin-top:5px; border-radius:8px; border:1px solid #ddd; width:100%; box-sizing:border-box;"/>
 
-        <button id="btnVerHorarios" style="padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer;">
-            🔍 Ver horarios disponibles
-        </button>
+                <br><br>
 
-        <div id="horariosList"></div>
+                <button id="btnVerHorarios" style="
+                    padding:12px 24px;
+                    background:#4CAF50;
+                    color:white;
+                    border:none;
+                    border-radius:8px;
+                    cursor:pointer;
+                    font-size:16px;
+                    width:100%;
+                ">🔍 Ver horarios disponibles</button>
 
-        <br>
-        <hr>
+                <div id="horariosList"></div>
+            </div>
 
-        <h3>📋 Citas agendadas:</h3>
-        <input id="inputBuscar" type="text" placeholder="🔍 Buscar por nombre o teléfono" style="padding:8px; border-radius:5px; border:1px solid #ccc; width:300px;"/>
+            <div style="background:white; border-radius:16px; padding:30px; box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+                <h3 style="margin:0 0 15px 0;">📋 Citas agendadas</h3>
+                <input id="inputBuscar" type="text" placeholder="🔍 Buscar por nombre o teléfono" style="padding:10px; border-radius:8px; border:1px solid #ddd; width:100%; box-sizing:border-box;"/>
+                <br><br>
+                <ul id="listaCitas" style="padding:0; margin:0;"></ul>
+            </div>
 
-        <br><br>
-
-        <ul id="listaCitas" style="padding:0"></ul>
+        </div>
     `;
 
     document.getElementById("inputFecha").min =
@@ -144,7 +185,6 @@ function actualizarPagina() {
     });
 
     document.getElementById("btnVerHorarios").addEventListener("click", function() {
-
         let nombre = document.getElementById("inputNombre").value.trim();
         let telefono = document.getElementById("inputTelefono").value.trim();
         let fecha = document.getElementById("inputFecha").value;
@@ -155,37 +195,34 @@ function actualizarPagina() {
         }
 
         if (!telefonoValido(telefono)) {
-            alert("Teléfono inválido");
+            alert("Teléfono inválido (10 dígitos)");
             return;
         }
 
-        let horariosHTML = `<br><h3>Horarios disponibles para ${fecha}:</h3>`;
+        let horariosHTML = `<br><h3>Horarios disponibles para ${fecha}:</h3><div style="display:flex; flex-wrap:wrap; gap:8px;">`;
 
         for (let i = 0; i < horarios.length; i++) {
-
             let ocupado = estaOcupado(fecha, horarios[i]);
-
             if (ocupado) {
-                horariosHTML += `<button disabled style="background:lightcoral; margin:5px; padding:8px; border:none; border-radius:5px;">❌ ${horarios[i]}</button>`;
+                horariosHTML += `<button disabled style="background:#ffcccc; padding:10px 16px; border:none; border-radius:8px; font-size:14px;">❌ ${horarios[i]}</button>`;
             } else {
                 horariosHTML += `<button class="btnHorario"
                     data-nombre="${nombre}"
                     data-telefono="${telefono}"
                     data-fecha="${fecha}"
                     data-horario="${horarios[i]}"
-                    style="background:lightgreen; margin:5px; padding:8px; border:none; border-radius:5px; cursor:pointer;">
+                    style="background:#d4edda; padding:10px 16px; border:none; border-radius:8px; cursor:pointer; font-size:14px;">
                     ✅ ${horarios[i]}
                 </button>`;
             }
         }
 
+        horariosHTML += `</div>`;
         document.getElementById("horariosList").innerHTML = horariosHTML;
-
         document.getElementById("horariosList").scrollIntoView({ behavior: "smooth" });
 
         document.querySelectorAll(".btnHorario").forEach(function(boton) {
             boton.addEventListener("click", function() {
-
                 let nuevaCita = {
                     id: Date.now(),
                     nombre: boton.dataset.nombre,
@@ -202,11 +239,8 @@ function actualizarPagina() {
                 citas.push(nuevaCita);
                 guardarCitas();
 
-                // 🚀 WHATSAPP AUTOMÁTICO
                 let mensaje = `Hola, quiero confirmar mi cita\n\n👤 Nombre: ${nuevaCita.nombre}\n📅 Fecha: ${nuevaCita.fecha}\n🕐 Hora: ${nuevaCita.horario}`;
-
                 let url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
-
                 window.open(url, "_blank");
 
                 document.getElementById("inputNombre").value = "";
@@ -219,6 +253,5 @@ function actualizarPagina() {
     });
 }
 
-// INIT
 cargarCitas();
 actualizarPagina();
