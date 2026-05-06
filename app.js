@@ -1,3 +1,11 @@
+const supabaseUrl = 'https://bijqxtrtacnaurfouvot.supabase.co';
+
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpanF4dHJ0YWNuYXVyZm91dm90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTM5OTksImV4cCI6MjA5MzY2OTk5OX0.tmUH2vystWgZc2eIm29-cHJTcbgGRGsZqBtTuDrfMtw';
+
+const client = window.supabase.createClient(
+    supabaseUrl,
+    supabaseKey
+);
 let citas = [];
 let busqueda = "";
 let esAdmin = false;
@@ -33,13 +41,47 @@ function generarSlots(fecha) {
 }
 
 // --------- STORAGE ---------
-function guardarCitas() {
-    localStorage.setItem("citas", JSON.stringify(citas));
+async function guardarCitaSupabase(cita) {
+
+    const { error } = await client
+        .from('appointments')
+        .insert([
+            {
+                client_name: cita.nombre,
+                client_phone: cita.telefono,
+                appointment_date: cita.fecha,
+                appointment_time: cita.horario
+            }
+        ]);
+
+    if(error){
+        console.log(error);
+        alert("Error guardando cita");
+        return false;
+    }
+
+    return true;
 }
 
-function cargarCitas() {
-    const data = localStorage.getItem("citas");
-    if (data) citas = JSON.parse(data);
+async function cargarCitas() {
+
+    const { data, error } = await client
+        .from('appointments')
+        .select('*');
+
+    if(error){
+        console.log(error);
+        return;
+    }
+
+    citas = data.map(c => ({
+        id: c.id,
+        nombre: c.client_name,
+        telefono: c.client_phone,
+        fecha: c.appointment_date,
+        horario: c.appointment_time
+    }));
+
 }
 
 // --------- HELPERS ---------
@@ -612,10 +654,19 @@ function confirmarCita() {
         horario: slotSeleccionado
     };
 
-    citas.push(nuevaCita);
-    guardarCitas();
-    slotSeleccionado = null;
-    renderExito(nuevaCita);
+guardarCitaSupabase(nuevaCita).then(success => {
+
+    if(success){
+
+        citas.push(nuevaCita);
+
+        slotSeleccionado = null;
+
+        renderExito(nuevaCita);
+
+    }
+
+});
 }
 
 function cancelarCita(id) {
@@ -668,5 +719,12 @@ function actualizarPagina() {
 }
 
 // --------- INIT ---------
-cargarCitas();
-actualizarPagina();
+async function init(){
+
+    await cargarCitas();
+
+    actualizarPagina();
+
+}
+
+init();
