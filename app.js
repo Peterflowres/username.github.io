@@ -1,6 +1,6 @@
 const supabaseUrl = 'https://bijqxtrtacnaurfouvot.supabase.co';
 
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpanF4dHJ0YWNuYXVyZm91dm90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTM5OTksImV4cCI6MjA5MzY2OTk5OX0.tmUH2vytWgZc2eIm29-cHJTcbgGRGsZqBtTuDrfMtw';
+const supabaseKey = 're_86oN5ZVk_CUA5DPruwTg3MXMbb1ZiZhRm';
 
 // 📧 CONFIGURACIÓN DE RESEND PARA EMAILS
 const RESEND_API_KEY = 're_86oN5ZVk_CUA5DPruwTg3MXMbb1ZiZhRm'; // Tu API key de Resend
