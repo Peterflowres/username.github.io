@@ -1,6 +1,10 @@
 const supabaseUrl = 'https://bijqxtrtacnaurfouvot.supabase.co';
 
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpanF4dHJ0YWNuYXVyZm91dm90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTM5OTksImV4cCI6MjA5MzY2OTk5OX0.tmUH2vystWgZc2eIm29-cHJTcbgGRGsZqBtTuDrfMtw';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpanF4dHJ0YWNuYXVyZm91dm90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTM5OTksImV4cCI6MjA5MzY2OTk5OX0.tmUH2vytWgZc2eIm29-cHJTcbgGRGsZqBtTuDrfMtw';
+
+// 📧 CONFIGURACIÓN DE RESEND PARA EMAILS
+const RESEND_API_KEY = 're_86oN5ZVk_CUA5DPruwTg3MXMbb1ZiZhRm'; // Tu API key de Resend
+const EMAIL_FROM = 'onboarding@resend.dev'; // Email desde el cual se envían
 
 const client = window.supabase.createClient(
     supabaseUrl,
@@ -51,6 +55,7 @@ async function guardarCitaSupabase(cita) {
             {
                 client_name: cita.nombre,
                 client_phone: cita.telefono,
+                client_email: cita.email,
                 appointment_date: cita.fecha,
                 appointment_time: cita.horario,
                 client_verification_code: codigoVerificacion
@@ -83,6 +88,7 @@ async function cargarCitas() {
         id: c.id,
         nombre: c.client_name,
         telefono: c.client_phone,
+        email: c.client_email,
         fecha: c.appointment_date,
         horario: c.appointment_time,
         codigoVerificacion: c.client_verification_code
@@ -93,6 +99,89 @@ async function cargarCitas() {
 // --------- HELPERS ---------
 function telefonoValido(tel) {
     return /^[0-9]{10}$/.test(tel);
+}
+
+// 📧 Función para enviar email con Resend
+async function enviarEmail(email, asunto, html) {
+    try {
+        const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${RESEND_API_KEY}`
+            },
+            body: JSON.stringify({
+                from: EMAIL_FROM,
+                to: email,
+                subject: asunto,
+                html: html
+            })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            console.error('Error enviando email:', data);
+            return false;
+        }
+
+        console.log('Email enviado exitosamente:', data);
+        return true;
+    } catch (error) {
+        console.error('Error en enviarEmail:', error);
+        return false;
+    }
+}
+
+// 📧 Función para crear el HTML del email de confirmación
+function crearEmailConfirmacion(cita) {
+    const fechaHora = new Date(`${cita.fecha}T${cita.horario}`);
+    const fechaFormato = fechaHora.toLocaleDateString("es-MX", {weekday:"long", year:"numeric", month:"long", day:"numeric"});
+    const horaFormato = fechaHora.toLocaleTimeString("es-MX", {hour:"2-digit", minute:"2-digit", hour12:true});
+
+    return `
+    <div style="font-family: Arial, sans-serif; background: #f1f5f9; padding: 24px;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; padding: 32px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);">
+            
+            <div style="text-align: center; margin-bottom: 32px;">
+                <div style="font-size: 40px; margin-bottom: 16px;">✅</div>
+                <h1 style="margin: 0; font-size: 28px; font-weight: 900; color: #1e293b;">¡Cita confirmada!</h1>
+            </div>
+
+            <p style="color: #64748b; font-size: 16px; margin-bottom: 32px; line-height: 1.6;">
+                Hola <strong>${cita.nombre}</strong>,<br><br>
+                Tu cita ha sido confirmada exitosamente. Aquí están los detalles:
+            </p>
+
+            <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 32px; border-left: 4px solid #2563eb;">
+                <div style="margin-bottom: 16px;">
+                    <div style="color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase;">📅 Fecha</div>
+                    <div style="color: #1e293b; font-size: 16px; font-weight: 900;">${fechaFormato}</div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <div style="color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase;">🕐 Hora</div>
+                    <div style="color: #1e293b; font-size: 16px; font-weight: 900;">${horaFormato}</div>
+                </div>
+                <div>
+                    <div style="color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase;">🔐 Código de verificación</div>
+                    <div style="color: #2563eb; font-size: 18px; font-weight: 900; font-family: monospace; letter-spacing: 2px;">${cita.codigoVerificacion}</div>
+                </div>
+            </div>
+
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; margin-bottom: 32px;">
+                <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                    <strong>💡 Tip:</strong> Guarda tu código de verificación para buscar o cancelar tu cita.
+                </p>
+            </div>
+
+            <div style="text-align: center; padding-top: 32px; border-top: 1px solid #e2e8f0;">
+                <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                    Si no realizaste esta reserva, por favor ignora este email.
+                </p>
+            </div>
+
+        </div>
+    </div>`;
 }
 
 function normalizar(texto) {
@@ -357,9 +446,14 @@ function renderAgendar() {
                     <input id="inputNombre" class="input-field" type="text" placeholder="Tu nombre" />
                 </div>
 
-                <div style="margin-bottom:20px;">
+                <div style="margin-bottom:16px;">
                     <label>Teléfono</label>
                     <input id="inputTelefono" class="input-field" type="tel" placeholder="10 dígitos" />
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <label>Email</label>
+                    <input id="inputEmail" class="input-field" type="email" placeholder="tu@email.com" />
                 </div>
 
                 <div id="errorMsg" style="display:none;" class="error-msg"></div>
@@ -643,6 +737,7 @@ function seleccionarSlot(horaKey) {
 function confirmarCita() {
     const nombre = document.getElementById("inputNombre").value.trim();
     const telefono = document.getElementById("inputTelefono").value.trim();
+    const email = document.getElementById("inputEmail").value.trim();
     const errorMsg = document.getElementById("errorMsg");
 
     const mostrarError = (msg) => {
@@ -655,6 +750,7 @@ function confirmarCita() {
 
     if (!nombre) return mostrarError("Por favor escribe tu nombre completo");
     if (!telefonoValido(telefono)) return mostrarError("Teléfono inválido, debe tener 10 dígitos");
+    if (!email || !email.includes("@")) return mostrarError("Email inválido");
     if (!slotSeleccionado) return mostrarError("Por favor selecciona un horario");
 
     const fechaStr = fechaSeleccionada.toISOString().split("T")[0];
@@ -662,6 +758,7 @@ function confirmarCita() {
         id: crypto.randomUUID(),
         nombre,
         telefono,
+        email,
         fecha: fechaStr,
         horario: slotSeleccionado
     };
@@ -670,6 +767,11 @@ function confirmarCita() {
         if(success){
             citas.push(nuevaCita);
             slotSeleccionado = null;
+            
+            // 📧 Enviar email de confirmación
+            const htmlEmail = crearEmailConfirmacion(nuevaCita);
+            enviarEmail(email, "✅ Cita confirmada", htmlEmail);
+            
             renderExito(nuevaCita);
         }
     });
@@ -722,12 +824,16 @@ function mostrarNotificacion(mensaje, tipo = "success") {
 }
 
 async function cancelarCita(id) {
+    console.log("Intentando eliminar cita con ID:", id);
+    
     if (!confirm("¿Eliminar esta cita permanentemente?")) return;
     
     const { error } = await client
         .from('appointments')
         .delete()
         .eq('id', id);
+    
+    console.log("Respuesta de Supabase:", { error });
     
     if (error) { 
         console.error("Error al eliminar:", error);
@@ -785,6 +891,18 @@ function actualizarPagina() {
 
 // --------- INIT ---------
 async function init(){
+    // Esperar a que Supabase esté disponible
+    let intentos = 0;
+    while (!window.supabase && intentos < 30) {
+        await new Promise(r => setTimeout(r, 100));
+        intentos++;
+    }
+    
+    if (!window.supabase) {
+        alert("⚠️ Error: No se pudo cargar Supabase. Intenta recargar la página.");
+        return;
+    }
+    
     await cargarCitas();
     actualizarPagina();
 }
