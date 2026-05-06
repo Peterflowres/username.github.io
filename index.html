@@ -3,14 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Supabase Test</title>
+  <title>Sistema de Citas</title>
+
+  <style>
+
+    body{
+      font-family: Arial, sans-serif;
+      background:#f4f4f4;
+      display:flex;
+      justify-content:center;
+      padding:40px;
+    }
+
+    .container{
+      background:white;
+      padding:25px;
+      border-radius:12px;
+      width:350px;
+      box-shadow:0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    h1{
+      text-align:center;
+    }
+
+    input{
+      width:100%;
+      padding:10px;
+      margin-top:10px;
+      border:1px solid #ccc;
+      border-radius:8px;
+      box-sizing:border-box;
+    }
+
+    button{
+      width:100%;
+      padding:12px;
+      margin-top:15px;
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+      font-size:16px;
+    }
+
+    .save-btn{
+      background:black;
+      color:white;
+    }
+
+    .appointment{
+      background:#f7f7f7;
+      padding:10px;
+      border-radius:8px;
+      margin-top:10px;
+    }
+
+  </style>
+
 </head>
 
 <body>
 
-  <button onclick="saveAppointment()">
-    Crear cita de prueba
-  </button>
+  <div class="container">
+
+    <h1>Sistema de Citas</h1>
+
+    <input type="text" id="name" placeholder="Nombre">
+
+    <input type="text" id="phone" placeholder="Teléfono">
+
+    <input type="date" id="date">
+
+    <input type="time" id="time">
+
+    <button class="save-btn" onclick="saveAppointment()">
+      Guardar Cita
+    </button>
+
+    <h2>Citas</h2>
+
+    <div id="appointmentsList"></div>
+
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -27,27 +101,76 @@
 
     async function saveAppointment() {
 
-      const { data, error } = await client
+      const name = document.getElementById('name').value;
+      const phone = document.getElementById('phone').value;
+      const date = document.getElementById('date').value;
+      const time = document.getElementById('time').value;
+
+      if(!name || !phone || !date || !time){
+        alert('Completa todos los campos');
+        return;
+      }
+
+      const { error } = await client
         .from('appointments')
         .insert([
           {
-            client_name: 'Pedro',
-            client_phone: '4421234567',
-            appointment_date: '2026-05-10',
-            appointment_time: '4:00 PM'
+            client_name: name,
+            client_phone: phone,
+            appointment_date: date,
+            appointment_time: time
           }
         ]);
 
-      console.log(data);
-      console.log(error);
-
-      if (error) {
+      if(error){
+        console.log(error);
         alert('Error guardando cita');
       } else {
-        alert('Cita guardada!');
+
+        alert('Cita guardada');
+
+        document.getElementById('name').value = '';
+        document.getElementById('phone').value = '';
+        document.getElementById('date').value = '';
+        document.getElementById('time').value = '';
+
+        loadAppointments();
+
       }
 
     }
+
+    async function loadAppointments(){
+
+      const { data, error } = await client
+        .from('appointments')
+        .select('*')
+        .order('id', { ascending:false });
+
+      const container = document.getElementById('appointmentsList');
+
+      container.innerHTML = '';
+
+      if(data){
+
+        data.forEach(appointment => {
+
+          container.innerHTML += `
+            <div class="appointment">
+              <strong>${appointment.client_name}</strong><br>
+              ${appointment.client_phone}<br>
+              ${appointment.appointment_date}<br>
+              ${appointment.appointment_time}
+            </div>
+          `;
+
+        });
+
+      }
+
+    }
+
+    loadAppointments();
 
   </script>
 
