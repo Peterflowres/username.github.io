@@ -1,9 +1,9 @@
 const supabaseUrl = 'https://bijqxtrtacnaurfouvot.supabase.co';
 
-const supabaseKey = 're_86oN5ZVk_CUA5DPruwTg3MXMbb1ZiZhRm';
+const supabaseKey = 're_FEFL5dso_3KS2sHBzZgGQeBr7NZDphULo';
 
 // 📧 CONFIGURACIÓN DE RESEND PARA EMAILS
-const RESEND_API_KEY = 're_86oN5ZVk_CUA5DPruwTg3MXMbb1ZiZhRm'; // Tu API key de Resend
+const RESEND_API_KEY = 're_FEFL5dso_3KS2sHBzZgGQeBr7NZDphULo'; // Tu API key de Resend
 const EMAIL_FROM = 'onboarding@resend.dev'; // Email desde el cual se envían
 
 const client = window.supabase.createClient(
