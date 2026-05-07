@@ -1,19 +1,11 @@
-// ============================================
-// SISTEMA DE CITAS - VERSIÓN CORREGIDA
-// ============================================
-
 const supabaseUrl = 'https://bijqxtrtacnaurfouvot.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpanF4dHJ0YWNuYXVyZm91dm90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTM5OTksImV4cCI6MjA5MzY2OTk5OX0.tmUH2vystWgZc2eIm29-cHJTcbgGRGsZqBtTuDrfMtw';
-
-// 📧 CONFIGURACIÓN DE RESEND PARA EMAILS
-const RESEND_API_KEY = 're_86oN5ZVk_CUA5DPruwTg3MXMbb1ZiZhRm';
-const EMAIL_FROM = 'onboarding@resend.dev';
 
 let client;
 let citas = [];
 let busqueda = "";
 let esAdmin = false;
-let vistaActual = "agendar"; // "agendar" | "mis-citas" | "admin"
+let vistaActual = "agendar";
 let fechaSeleccionada = new Date();
 let slotSeleccionado = null;
 
@@ -46,10 +38,10 @@ function generarSlots(fecha) {
 
 // --------- STORAGE ---------
 async function guardarCitaSupabase(cita) {
-    // Generar código de verificación único (6 dígitos)
+    // Generar código de verificación único (6 dígitos alfanuméricos)
     const codigoVerificacion = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    const { error } = await client
+    const { data, error } = await client
         .from('appointments')
         .insert([
             {
@@ -60,7 +52,8 @@ async function guardarCitaSupabase(cita) {
                 appointment_time: cita.horario,
                 client_verification_code: codigoVerificacion
             }
-        ]);
+        ])
+        .select();
 
     if (error) {
         console.error("Error guardando cita:", error);
@@ -68,7 +61,10 @@ async function guardarCitaSupabase(cita) {
         return false;
     }
 
-    // Guardar el código en la cita para mostrarlo después
+    // Guardar el ID real devuelto por Supabase
+    if (data && data.length > 0) {
+        cita.id = data[0].id;
+    }
     cita.codigoVerificacion = codigoVerificacion;
     return true;
 }
@@ -76,7 +72,8 @@ async function guardarCitaSupabase(cita) {
 async function cargarCitas() {
     const { data, error } = await client
         .from('appointments')
-        .select('*');
+        .select('*')
+        .order('appointment_date', { ascending: true });
 
     if (error) {
         console.error("Error cargando citas:", error);
@@ -97,89 +94,6 @@ async function cargarCitas() {
 // --------- HELPERS ---------
 function telefonoValido(tel) {
     return /^[0-9]{10}$/.test(tel);
-}
-
-// 📧 Función para enviar email con Resend
-async function enviarEmail(email, asunto, html) {
-    try {
-        const response = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${RESEND_API_KEY}`
-            },
-            body: JSON.stringify({
-                from: EMAIL_FROM,
-                to: email,
-                subject: asunto,
-                html: html
-            })
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-            console.error('Error enviando email:', data);
-            return false;
-        }
-
-        console.log('Email enviado exitosamente:', data);
-        return true;
-    } catch (error) {
-        console.error('Error en enviarEmail:', error);
-        return false;
-    }
-}
-
-// 📧 Función para crear el HTML del email de confirmación
-function crearEmailConfirmacion(cita) {
-    const fechaHora = new Date(`${cita.fecha}T${cita.horario}`);
-    const fechaFormato = fechaHora.toLocaleDateString("es-MX", {weekday:"long", year:"numeric", month:"long", day:"numeric"});
-    const horaFormato = fechaHora.toLocaleTimeString("es-MX", {hour:"2-digit", minute:"2-digit", hour12:true});
-
-    return `
-    <div style="font-family: Arial, sans-serif; background: #f1f5f9; padding: 24px;">
-        <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; padding: 32px; box-shadow: 0 2px 16px rgba(0,0,0,0.07);">
-            
-            <div style="text-align: center; margin-bottom: 32px;">
-                <div style="font-size: 40px; margin-bottom: 16px;">✅</div>
-                <h1 style="margin: 0; font-size: 28px; font-weight: 900; color: #1e293b;">¡Cita confirmada!</h1>
-            </div>
-
-            <p style="color: #64748b; font-size: 16px; margin-bottom: 32px; line-height: 1.6;">
-                Hola <strong>${cita.nombre}</strong>,<br><br>
-                Tu cita ha sido confirmada exitosamente. Aquí están los detalles:
-            </p>
-
-            <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 32px; border-left: 4px solid #2563eb;">
-                <div style="margin-bottom: 16px;">
-                    <div style="color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase;">📅 Fecha</div>
-                    <div style="color: #1e293b; font-size: 16px; font-weight: 900;">${fechaFormato}</div>
-                </div>
-                <div style="margin-bottom: 16px;">
-                    <div style="color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase;">🕐 Hora</div>
-                    <div style="color: #1e293b; font-size: 16px; font-weight: 900;">${horaFormato}</div>
-                </div>
-                <div>
-                    <div style="color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase;">🔐 Código de verificación</div>
-                    <div style="color: #2563eb; font-size: 18px; font-weight: 900; font-family: monospace; letter-spacing: 2px;">${cita.codigoVerificacion}</div>
-                </div>
-            </div>
-
-            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; margin-bottom: 32px;">
-                <p style="margin: 0; color: #1e40af; font-size: 14px;">
-                    <strong>💡 Tip:</strong> Guarda tu código de verificación para buscar o cancelar tu cita.
-                </p>
-            </div>
-
-            <div style="text-align: center; padding-top: 32px; border-top: 1px solid #e2e8f0;">
-                <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-                    Si no realizaste esta reserva, por favor ignora este email.
-                </p>
-            </div>
-
-        </div>
-    </div>`;
 }
 
 function normalizar(texto) {
@@ -555,7 +469,6 @@ function renderBusquedaCitas() {
         return;
     }
 
-    // Solo buscar por código de verificación
     const resultados = citas.filter(c => c.codigoVerificacion && c.codigoVerificacion === q);
 
     if (resultados.length === 0) {
@@ -761,15 +674,17 @@ async function confirmarCita() {
         horario: slotSeleccionado
     };
 
+    const btnConfirmar = document.querySelector('.btn-primary');
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = '⏳ Guardando...';
+
     const success = await guardarCitaSupabase(nuevaCita);
+    btnConfirmar.disabled = false;
+    btnConfirmar.textContent = 'Verificar y confirmar →';
+
     if (success) {
         citas.push(nuevaCita);
         slotSeleccionado = null;
-        
-        // 📧 Enviar email de confirmación
-        const htmlEmail = crearEmailConfirmacion(nuevaCita);
-        enviarEmail(email, "✅ Cita confirmada", htmlEmail);
-        
         renderExito(nuevaCita);
     }
 }
@@ -788,14 +703,9 @@ async function cancelarCitaUsuario(id) {
         return; 
     }
     
-    // Recargar citas de la base de datos después de eliminar
     await cargarCitas();
-    
-    // Limpiar búsqueda y actualizar
     document.getElementById("inputBuscarCita").value = "";
     renderBusquedaCitas();
-    
-    // Mostrar notificación
     mostrarNotificacion("✅ Cita cancelada correctamente", "success");
 }
 
@@ -817,6 +727,14 @@ function mostrarNotificacion(mensaje, tipo = "success") {
     notif.textContent = mensaje;
     document.body.appendChild(notif);
     
+    // Agregar keyframes dinámicamente si no existen
+    if (!document.getElementById('notif-anim')) {
+        const anim = document.createElement('style');
+        anim.id = 'notif-anim';
+        anim.innerHTML = '@keyframes slideIn { from { opacity:0; transform:translateX(100px); } to { opacity:1; transform:translateX(0); } }';
+        document.head.appendChild(anim);
+    }
+    
     setTimeout(() => notif.remove(), 4000);
 }
 
@@ -834,7 +752,6 @@ async function cancelarCita(id) {
         return; 
     }
     
-    // Recargar citas de la base de datos después de eliminar
     await cargarCitas();
     actualizarPagina();
     mostrarNotificacion("✅ Cita eliminada", "success");
@@ -884,25 +801,29 @@ function actualizarPagina() {
 
 // --------- INIT ---------
 async function init() {
-    // Esperar a que Supabase esté disponible
-    let intentos = 0;
-    while (!window.supabase && intentos < 30) {
-        await new Promise(r => setTimeout(r, 100));
-        intentos++;
+    try {
+        if (!window.supabase) {
+            document.getElementById('app').innerHTML = `
+                <div style="text-align:center; padding:48px;">
+                    <h2 style="color:#dc2626;">Error al cargar</h2>
+                    <p>No se pudo conectar con Supabase. Verifica tu conexión.</p>
+                    <button onclick="location.reload()" style="padding:12px 24px; background:#2563eb; color:white; border:none; border-radius:8px; cursor:pointer;">Recargar</button>
+                </div>`;
+            return;
+        }
+        
+        client = window.supabase.createClient(supabaseUrl, supabaseKey);
+        await cargarCitas();
+        actualizarPagina();
+    } catch (error) {
+        console.error("Error inicializando:", error);
+        document.getElementById('app').innerHTML = `
+            <div style="text-align:center; padding:48px;">
+                <h2 style="color:#dc2626;">Error inesperado</h2>
+                <p>${error.message}</p>
+                <button onclick="location.reload()" style="padding:12px 24px; background:#2563eb; color:white; border:none; border-radius:8px; cursor:pointer;">Reintentar</button>
+            </div>`;
     }
-    
-    if (!window.supabase) {
-        alert("⚠️ Error: No se pudo cargar Supabase. Intenta recargar la página.");
-        return;
-    }
-    
-    // Crear cliente Supabase
-    client = window.supabase.createClient(supabaseUrl, supabaseKey);
-    
-    // Cargar citas y renderizar
-    await cargarCitas();
-    actualizarPagina();
 }
 
-// Iniciar la aplicación
 init();
